@@ -1,0 +1,10 @@
+{
+  "name": "pgcompare",
+  "version": "0.0.2",
+  "main": "index.js",
+  "dependencies": {
+    "async": "latest",
+    "lodash": "latest",
+    "pg": "latest"
+  }
+}

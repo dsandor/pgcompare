@@ -1,0 +1,66 @@
+<!doctype html>
+<html ng-app="pgCompareApp">
+<head>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/angular.min.js"></script>
+    <!--script src="js/bootstrap.min.js"></script -->
+    <script src="js/app.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="css/font-awesome.min.css">
+
+</head>
+<body>
+
+<div class="container" ng-controller="changesController">
+    <div class="row" style="margin: 4px; ">
+        <div class="col-sm-3">Compare</div>
+        <div class="col-sm-3"><input type="checkbox" ng-checked="hideMatches" ng-click="hideMatchesClick()"> hide matches</div>
+        <div class="col-sm-6">
+            <button class="btn btn-default pull-right" style="padding-left: 8px;padding-right: 8px;" ng-click="applyChanges()">
+                Apply Changes&nbsp;<em class="fa fa-arrow-circle-right"></em></button>
+        </div>
+    </div>
+
+    <div class="row" ng-show="isLoading">
+        <div class="col-sm-1">
+            <em class="fa fa-spin fa-spinner fa-2x"></em>
+        </div>
+        <div class="col-sm-11">
+            <span style="margin-left: 10px; font-size: 18pt;">{{ loadingMessage }}</span>
+        </div>
+    </div>
+
+    <div class="row">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th colspan="2" class="bg-success">source database</th>
+                    <th></th>
+                    <th colspan="2" class="bg-info">destination database</th>
+                </tr>
+                <tr>
+                    <th>include</th>
+                    <th>type</th>
+                    <th>name</th>
+                    <th class="text-center">status</th>
+                    <th>type</th>
+                    <th>name</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="table in compareResults | filter:criteriaMatch(criteria) ">
+                    <td><input type="checkbox" ng-model="table.isSelected"></td>
+                    <td>{{ table.object_type }}</td>
+                    <td>{{ table.source_object_name }}</td>
+                    <td class="text-center">{{ table.status }}</td>
+                    <td>{{ table.object_type }}</td>
+                    <td>{{ table.destination_object_name }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

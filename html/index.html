@@ -1,0 +1,58 @@
+<!doctype html>
+<html ng-app="pgCompareApp">
+<head>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="css/font-awesome.min.css">
+</head>
+<body class="container-fluid">
+
+<div class="row" style="margin-top: 20px;">
+    <div class="col-sm-12 text-center">
+        <span class="fa fa-database fa-5x" ></span>&nbsp;
+        <span class="fa fa-exchange fa-5x" style="margin-left: 15px; margin-right: 15px;" ></span>&nbsp;
+        <span class="fa fa-database fa-5x" ></span>
+    </div>
+</div>
+
+<div class="row" style="margin-top: 20px;">
+    <div class="col-sm-12 text-center">
+        <h1>pg Compare</h1>
+    </div>
+</div>
+
+<div class="row" style="margin-top: 20px;">
+    <div class="col-sm-12 text-center">
+        Open a settings file to get started or create a new one.
+    </div>
+</div>
+<div class="row" style="margin-top: 20px;">
+    <div class="col-sm-12 text-center">
+        <button class="btn btn-info" onclick="openSettingsFile();">OPEN</button>
+        <button class="btn btn-info" onclick="newSettingsFile()" style="margin-left: 15px;">NEW</button>
+    </div>
+</div>
+<script>
+    // http://www.mylifeforthecode.com/getting-started-with-standard-dialogs-in-electron/
+
+    var fs = require('fs');
+    var remote = require('remote');
+    var dialog = remote.require('dialog');
+    var ipc = require('ipc');
+
+    function openSettingsFile() {
+
+        dialog.showOpenDialog({ filters: [
+            { name: 'pg compare settings', extensions: ['pgc'] }
+        ]}, function (fileName) {
+            if (fileName === undefined) return;
+            ipc.send('navigate-load-settings', fileName);
+        });
+    }
+
+    function newSettingsFile() {
+        ipc.send('navigate-settings');
+    }
+</script>
+</body>
+</html>

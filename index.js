@@ -165,13 +165,13 @@ function compareRoutines(schemaData, cb) {
 
     for(var i= 0, max= schemaData.sourceRoutines.length; i < max; i++) {
         //console.log('routine: ' + schemaData.sourceRoutines[i].routine_name + '\r\nddl: ' + schemaData.sourceRoutines[i].ddl);
-        var destRoutine = _.findWhere(schemaData.destinationRoutines, { routine_name: schemaData.sourceRoutines[i].routine_name });
+        var destRoutine = _.findWhere(schemaData.destinationRoutines, { full_name: schemaData.sourceRoutines[i].full_name });
 
         if (typeof destRoutine == 'undefined') {
             schemaData.compareResults.push(
                 {
                     object_type: 'routine',
-                    source_object_name: schemaData.sourceRoutines[i].routine_name,
+                    source_object_name: schemaData.sourceRoutines[i].full_name,
                     destination_object_name: '',
                     status: '!>',
                     isSelected: false
@@ -182,8 +182,8 @@ function compareRoutines(schemaData, cb) {
                 schemaData.compareResults.push(
                     {
                         object_type: 'routine',
-                        source_object_name: schemaData.sourceRoutines[i].routine_name,
-                        destination_object_name: destRoutine.routine_name,
+                        source_object_name: schemaData.sourceRoutines[i].full_name,
+                        destination_object_name: destRoutine.full_name,
                         status: '=',
                         isSelected: false
                     }
@@ -192,8 +192,8 @@ function compareRoutines(schemaData, cb) {
                 schemaData.compareResults.push(
                     {
                         object_type: 'routine',
-                        source_object_name: schemaData.sourceRoutines[i].routine_name,
-                        destination_object_name: destRoutine.routine_name,
+                        source_object_name: schemaData.sourceRoutines[i].full_name,
+                        destination_object_name: destRoutine.full_name,
                         status: '!=',
                         isSelected: false
                     }
@@ -357,8 +357,17 @@ function getRoutineData(serverData, cb) {
                             return console.error('error running query', col_err);
                         }
                         item.ddl = col_result.rows[0].pg_get_functiondef;
+                        var offset_dot = item.ddl.indexOf('.'),
+                            offset_op  = item.ddl.indexOf('('),
+                            offset_ep  = item.ddl.indexOf(')');
 
-                            //console.log('item.ddl: ' + item.ddl);
+                        // extract function name
+                        if (offset_dot > 0 && offset_op > offset_dot && offset_ep > offset_op) {
+                            var full_name = item.ddl.substr(offset_dot + 1, (offset_ep - offset_dot) + 1);
+                            item.full_name = full_name;
+                        }
+
+                        console.log('item.full_name: ' + item.full_name);
                         async_done();
                     });
                 },

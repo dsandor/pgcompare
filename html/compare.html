@@ -1,3 +1,9 @@
+<!--
+
+Notes: add tooltips to the routine names to show full name.
+tooltips: https://github.com/720kb/angular-tooltips#angular-tooltips
+-->
+
 <!doctype html>
 <html ng-app="pgCompareApp">
 <head>
@@ -5,16 +11,22 @@
     <script src="js/angular.min.js"></script>
     <!--script src="js/bootstrap.min.js"></script -->
     <script src="js/app.js"></script>
+    <script src="js/angular-tooltips.min.js"></script>
+    <link rel="stylesheet" href="css/angular-tooltips.min.css">
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/bootstrap-theme.min.css">
     <link rel="stylesheet" href="css/font-awesome.min.css">
+
 
 </head>
 <body>
 
 <div class="container" ng-controller="changesController">
     <div class="row" style="margin: 4px; ">
-        <div class="col-sm-3">Compare</div>
+        <div class="col-sm-3">
+            <button class="btn btn-default pull-left" style="padding-left: 8px;padding-right: 8px;" ng-click="backToSettings();">
+                <em class="fa fa-arrow-circle-left"></em>&nbsp;Settings</button>
+        </div>
         <div class="col-sm-3"><input type="checkbox" ng-checked="hideMatches" ng-click="hideMatchesClick()"> hide matches</div>
         <div class="col-sm-6">
             <button class="btn btn-default pull-right" style="padding-left: 8px;padding-right: 8px;" ng-click="applyChanges()">
@@ -52,11 +64,11 @@
             <tbody>
                 <tr ng-repeat="table in compareResults | filter:criteriaMatch(criteria) ">
                     <td><input type="checkbox" ng-model="table.isSelected"></td>
-                    <td>{{ table.object_type }}</td>
-                    <td>{{ table.source_object_name }}</td>
+                    <td >{{ table.object_type }}</td>
+                    <td tooltips tooltip-title="{{ table.source_object_name }}">{{ table.short_name }}</td>
                     <td class="text-center">{{ table.status }}</td>
                     <td>{{ table.object_type }}</td>
-                    <td>{{ table.destination_object_name }}</td>
+                    <td tooltips tooltip-title="{{ table.destination_object_name }}">{{ table.short_name }}</td>
                 </tr>
             </tbody>
         </table>

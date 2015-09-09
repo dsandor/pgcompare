@@ -2,7 +2,7 @@ var ipc = require('ipc');
 var remote = require('remote');
 var dialog = remote.require('dialog');
 
-angular.module('pgCompareApp', [])
+angular.module('pgCompareApp', ['720kb.tooltips'])
     .controller('mainController', function() {
         var todoList = this;
         todoList.todos = [
@@ -102,6 +102,12 @@ angular.module('pgCompareApp', [])
 
         startCompare = function() {
             ipc.send('apply-changes', $scope.sourceSettings, $scope.destinationSettings);
+        };
+
+        $scope.backToSettings = function() {
+            var settings = { sourceSettings: $scope.sourceSettings, destinationSettings: $scope.destinationSettings };
+
+            ipc.send('navigate-back-settings', settings);
         };
 
         //comparing-message

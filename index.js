@@ -9,6 +9,8 @@ var app = require('app'),  // Module to control application life.
 // Report crashes to our server.
 require('crash-reporter').start();
 
+var currentSettings = {};
+
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is GCed.
 var mainWindow = null;
@@ -49,6 +51,8 @@ ipc.on('main-log', function(event, arg) {
 });
 
 ipc.on('start-compare', function(event, source, dest) {
+
+    currentSettings = { sourceSettings: source, destinationSettings: dest };
     startCompare(source, dest);
 });
 
@@ -72,6 +76,16 @@ ipc.on('navigate-load-settings', function(event, filename) {
             mainWindow.webContents.send('load-settings', JSON.parse(data));
         }, 650);
     });
+});
+
+ipc.on('navigate-back-settings', function(event) {
+
+    mainWindow.setTitle('Settings');
+    mainWindow.loadUrl('file://' + __dirname + '/html/settings.html');
+
+    setTimeout(function() {
+        mainWindow.webContents.send('load-settings', currentSettings);
+    }, 650);
 });
 
 ipc.on('navigate-settings', function() {
@@ -173,6 +187,7 @@ function compareRoutines(schemaData, cb) {
                     object_type: 'routine',
                     source_object_name: schemaData.sourceRoutines[i].full_name,
                     destination_object_name: '',
+                    short_name: schemaData.sourceRoutines[i].routine_name,
                     status: '!>',
                     isSelected: false
                 }
@@ -184,6 +199,7 @@ function compareRoutines(schemaData, cb) {
                         object_type: 'routine',
                         source_object_name: schemaData.sourceRoutines[i].full_name,
                         destination_object_name: destRoutine.full_name,
+                        short_name: schemaData.sourceRoutines[i].routine_name,
                         status: '=',
                         isSelected: false
                     }
@@ -194,6 +210,7 @@ function compareRoutines(schemaData, cb) {
                         object_type: 'routine',
                         source_object_name: schemaData.sourceRoutines[i].full_name,
                         destination_object_name: destRoutine.full_name,
+                        short_name: schemaData.sourceRoutines[i].routine_name,
                         status: '!=',
                         isSelected: false
                     }
@@ -232,6 +249,7 @@ function compareSchemas(schemaData, cb) {
             object_type: 'table',
             source_object_name: sourceItem.table_name,
             destination_object_name: destMatch.table_name,
+            short_name: sourceItem.table_name,
             status: '=',
             isSelected: false
         };
@@ -245,6 +263,7 @@ function compareSchemas(schemaData, cb) {
                 object_type: 'table',
                 source_object_name: '',
                 destination_object_name: schemaData.destinationSchema[i].table_name,
+                short_name: schemaData.destinationSchema[i].table_name,
                 status: '!<',
                 isSelected: false
             });
@@ -411,7 +430,7 @@ var sql_table_details = "select c.table_catalog, c.table_schema, c.table_name, c
 var sql_table_list = "select * from information_schema.tables where table_schema = $1;";
 
 // $1 = schema name
-var sql_routine_list = "select * FROM information_schema.routines where routine_schema = $1;";
+var sql_routine_list = "select * FROM information_schema.routines where routine_schema = $1 order by routine_name;";
 
 // $1 = routine id
 var sql_routine_ddl = "select * from pg_get_functiondef($1);";

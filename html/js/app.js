@@ -92,12 +92,18 @@ angular.module('pgCompareApp', ['720kb.tooltips'])
 
         $scope.applyChanges = function() {
             console.log('applyChanges called, ' + $scope.compareResults.length);
+
+            var selectedItems = [];
+
             for(var i= 0,max=$scope.compareResults.length; i<max; i++)
             {
                 if ($scope.compareResults[i].isSelected) {
+                    selectedItems.push($scope.compareResults[i]);
                     console.log('selected change: ' + JSON.stringify($scope.compareResults[i]));
                 }
             }
+
+            ipc.send('apply-changes', selectedItems);
         };
 
         startCompare = function() {

@@ -1,19 +1,38 @@
-var app = require('app'),  // Module to control application life.
-    BrowserWindow = require('browser-window'),  // Module to create native browser window.
-    ipc = require('ipc'),
-    pg = require('pg'),
-    _ = require('lodash'),
-    fs = require('fs'),
-    async = require('async');
+/*
 
-// Report crashes to our server.
-require('crash-reporter').start();
+ The MIT License (MIT)
+
+ Copyright (c) 2015 David Sandor
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+
+ */
+var app           = require('app'),
+    BrowserWindow = require('browser-window'),
+    ipc           = require('ipc'),
+    pg            = require('pg'),
+    _             = require('lodash'),
+    fs            = require('fs'),
+    async         = require('async');
 
 var currentSettings = {};
-
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is GCed.
-var mainWindow = null;
+var mainWindow      = null;
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {
@@ -28,7 +47,7 @@ app.on('window-all-closed', function() {
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
     // Create the browser window.
-    mainWindow = new BrowserWindow({width: 800, height: 620});
+    mainWindow = new BrowserWindow({ width: 800, height: 620, title: 'pgCompare' });
 
     // and load the index.html of the app.
     mainWindow.loadUrl('file://' + __dirname + '/html/index.html');
@@ -45,6 +64,7 @@ app.on('ready', function() {
     });
 });
 
+/* Messages from the renderer process. */
 ipc.on('main-log', function(event, arg) {
     console.log('main-log', 'arg:', arg);
     event.returnValue = 'Thanks from main-log.';
@@ -56,9 +76,6 @@ ipc.on('start-compare', function(event, source, dest) {
     startCompare(source, dest);
 });
 
-// TODO: need to make the renderer side send the filename and then here
-// load it which gets the source and dest configs.  these are then loaded and sent to
-// settings screen.
 ipc.on('navigate-load-settings', function(event, filename) {
 
     console.log('nls: ' + filename[0]);
@@ -103,6 +120,32 @@ ipc.on('save-settings', function(event, filename, settings) {
     });
 });
 
+ipc.on('apply-changes', function(event, selectedItems) {
+    console.log('selectedItems: ' + selectedItems.length);
+
+    var sqlScript = '';
+
+    var iterator = function(item, iteratorComplete) {
+        console.log('iterator for: ', item.short_name);
+
+        var ddlSourceObject = JSON.parse(item.source_object);
+        var ddlDestinationObject = JSON.parse(item.destination_object);
+
+        sqlScript += '\n\r\n\r' + scriptTable(ddlSourceObject, ddlDestinationObject);
+
+        iteratorComplete();
+    };
+
+    var complete = function(err) {
+        console.log('all iterators complete');
+        console.log('sqlScript: ' + sqlScript);
+    }
+
+    async.each(selectedItems, iterator, complete);
+
+});
+
+/* Functions */
 function startCompare(source, dest) {
     console.log('source', source, 'dest', dest);
 
@@ -189,7 +232,8 @@ function compareRoutines(schemaData, cb) {
                     destination_object_name: '',
                     short_name: schemaData.sourceRoutines[i].routine_name,
                     status: '!>',
-                    isSelected: false
+                    isSelected: false,
+                    object: JSON.stringify(schemaData.sourceRoutines[i])
                 }
             );
         } else {
@@ -201,7 +245,8 @@ function compareRoutines(schemaData, cb) {
                         destination_object_name: destRoutine.full_name,
                         short_name: schemaData.sourceRoutines[i].routine_name,
                         status: '=',
-                        isSelected: false
+                        isSelected: false,
+                        object: JSON.stringify(schemaData.sourceRoutines[i])
                     }
                 );
             } else {
@@ -212,7 +257,8 @@ function compareRoutines(schemaData, cb) {
                         destination_object_name: destRoutine.full_name,
                         short_name: schemaData.sourceRoutines[i].routine_name,
                         status: '!=',
-                        isSelected: false
+                        isSelected: false,
+                        object: JSON.stringify(schemaData.sourceRoutines[i])
                     }
                 );
             }
@@ -241,17 +287,22 @@ function compareSchemas(schemaData, cb) {
                 source_object_name: sourceItem.table_name,
                 destination_object_name: '',
                 status: '!>',
-                isSelected: false
+                isSelected: false,
+                source_object: JSON.stringify(sourceItem),
+                destination_object: null
             };
         }
 
+        console.log('table=table: ', sourceItem);
         return {
             object_type: 'table',
             source_object_name: sourceItem.table_name,
             destination_object_name: destMatch.table_name,
             short_name: sourceItem.table_name,
             status: '=',
-            isSelected: false
+            isSelected: false,
+            source_object: JSON.stringify(sourceItem),
+            destination_object: JSON.stringify(destMatch)
         };
     });
 
@@ -265,7 +316,9 @@ function compareSchemas(schemaData, cb) {
                 destination_object_name: schemaData.destinationSchema[i].table_name,
                 short_name: schemaData.destinationSchema[i].table_name,
                 status: '!<',
-                isSelected: false
+                isSelected: false,
+                source_object: null,
+                destination_object: JSON.stringify(schemaData.destinationSchema[i])
             });
         }
     }
@@ -274,8 +327,20 @@ function compareSchemas(schemaData, cb) {
     cb(compareResults);
 }
 
-// http://www.postgresql.org/docs/current/interactive/infoschema-routines.html
+function scriptTable(source, destination) {
+
+    // new table in source not in dest.
+    if (destination == null) {
+        
+        return;
+    }
+
+    // new, different, drop
+}
+
 function getSchemaData(serverData, cb) {
+    // http://www.postgresql.org/docs/current/interactive/infoschema-routines.html
+
     var conString = "postgres://" + serverData.server + "/" + serverData.database;
 
     console.log('connection string:', conString);
@@ -397,24 +462,8 @@ function getRoutineData(serverData, cb) {
         });
     });
 }
-/*
-pg.connect(conString, function(err, client, done) {
-    if(err) {
-        return console.error('error fetching client from pool', err);
-    }
-    client.query('SELECT $1::int AS number', ['1'], function(err, result) {
-        //call `done()` to release the client back to the pool
-        done();
 
-        if(err) {
-            return console.error('error running query', err);
-        }
-        console.log(result.rows[0].number);
-        //output: 1
-    });
-});
-*/
-
+/* SQL Statements to query the schema. */
 // $1 = schema name
 // $2 = table name
 var sql_table_details = "select c.table_catalog, c.table_schema, c.table_name, c.column_name, " +
